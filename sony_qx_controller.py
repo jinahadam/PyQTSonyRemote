@@ -1,13 +1,4 @@
 #!/usr/bin/env python3
-
-# Script for managing Sony QX100 (or Sony QX10, not tested with it yet) from PC.
-# Supports AUTHORIZATION (!!!), which allows to use a lot of undocumented commands (such as setStillSize and others).
-
-# Before using this script: manually connect to Wi-Fi; set up IP 10.0.1.1, mask 255.0.0.0 (and if that's not enough - default gateway: 10.0.0.1).
-# Note. Password can be taken from a text file in the internal memory of the device, connect it with USB and switch on for accessing this memory.
-
-# This script depends on PyQt4 for displaying liveview. On Ubuntu just run command: apt-get install python3-pyqt4
-
 import sys, json, time
 import http.client, urllib.parse
 import threading
@@ -30,12 +21,15 @@ class ImageDisplay(QLabel):
         lock.acquire()
         try:
             self.setPixmap(QPixmap.fromImage(image))
+          #  self.fromSpinBox = QDoubleSpinBox()
+          #  self.fromSpinBox.setRange(0.01, 10000000.00)
+          #  self.fromSpinBox.setValue(1.00)
         finally:
             lock.release()
         QLabel.paintEvent(self, event)
 
 imgDisplay = ImageDisplay()
-imgDisplay.setMinimumSize(640, 480)
+imgDisplay.setMinimumSize(840, 480)
 imgDisplay.show()
 
 pId = 0
@@ -137,85 +131,85 @@ def communicationThread():
 
     conn = http.client.HTTPConnection("10.0.0.1", 10000)
 
-    resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
-    if resp["result"][0][0] != "1.0":
-        exitWithError(conn, "Unsupported version")
-
-    resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": "", "developerName": "", "developerID": "", "sg": ""}], "version": "1.0"})
-    dg = resp["result"][0]["dg"]
+    # resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
+    # if resp["result"][0][0] != "1.0":
+    #     exitWithError(conn, "Unsupported version")
+    #
+    # resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": "", "developerName": "", "developerID": "", "sg": ""}], "version": "1.0"})
+    # dg = resp["result"][0]["dg"]
 
     h = hashlib.sha256()
     h.update(bytes(AUTH_CONST_STRING + dg, "UTF-8"))
     sg = base64.b64encode(h.digest()).decode("UTF-8")
 
-    resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": METHODS_TO_ENABLE, "developerName": "Sony Corporation", "developerID": "7DED695E-75AC-4ea9-8A85-E5F8CA0AF2F3", "sg": sg}], "version": "1.0"})
-
-    resp = postRequest(conn, "system", {"method": "getMethodTypes", "params": ["1.0"], "version": "1.0"})
-    resp = postRequest(conn, "accessControl", {"method": "getMethodTypes", "params": ["1.0"], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "getStillSize", "params": [], "version": "1.0"})
-    #resp = postRequest(conn, "camera", {"method": "getSupportedStillSize", "params": [], "version": "1.0"})
+    # resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": METHODS_TO_ENABLE, "developerName": "Sony Corporation", "developerID": "7DED695E-75AC-4ea9-8A85-E5F8CA0AF2F3", "sg": sg}], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "system", {"method": "getMethodTypes", "params": ["1.0"], "version": "1.0"})
+    # resp = postRequest(conn, "accessControl", {"method": "getMethodTypes", "params": ["1.0"], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "getStillSize", "params": [], "version": "1.0"})
+    # #resp = postRequest(conn, "camera", {"method": "getSupportedStillSize", "params": [], "version": "1.0"})
     #resp = postRequest(conn, "camera", {"method": "getAvailableStillSize", "params": [], "version": "1.0"})
 
     #resp = postRequest(conn, "camera", {"method": "setStillSize", "params": ["20M", "3:2"], "version": "1.0"})
 
-    resp = postRequest(conn, "camera", {"method": "setFocusMode", "params": ["AF-S"], "version": "1.0"})
-    resp = postRequest(conn, "camera", {"method": "getFocusMode", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "stopLiveview", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
-    while "error" in resp:
-        resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
-    resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
-    downloadImage(resp["result"][0][0])
-
-    resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["2M"], "version": "1.0"})
-    while "error" in resp:
-        resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["2M"], "version": "1.0"})
-    resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
-    downloadImage(resp["result"][0][0])
-
-    resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
-    while "error" in resp:
-        resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
-    resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
-    downloadImage(resp["result"][0][0])
-
-    resp = postRequest(conn, "camera", {"method": "getAvailableFocusMode", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "getSupportedFocusMode", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "getTouchAFPosition", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "getSupportedFNumber", "params": [], "version": "1.0"})
-
-    #resp = postRequest(conn, "camera", {"method": "setFocusMode", "params": ["MF"], "version": "1.0"})
-    #resp = postRequest(conn, "camera", {"method": "getFocusMode", "params": [], "version": "1.0"})
-
-    resp = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "setFocusMode", "params": ["AF-S"], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "getFocusMode", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "stopLiveview", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
+    # while "error" in resp:
+    #     resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
+    # downloadImage(resp["result"][0][0])
+    #
+    # resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["2M"], "version": "1.0"})
+    # while "error" in resp:
+    #     resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["2M"], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
+    # downloadImage(resp["result"][0][0])
+    #
+    # resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
+    # while "error" in resp:
+    #     resp = postRequest(conn, "camera", {"method": "setPostviewImageSize", "params": ["Original"], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "getPostviewImageSize", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
+    # downloadImage(resp["result"][0][0])
+    #
+    # resp = postRequest(conn, "camera", {"method": "getAvailableFocusMode", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "getSupportedFocusMode", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "getTouchAFPosition", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "getSupportedFNumber", "params": [], "version": "1.0"})
+    #
+    # #resp = postRequest(conn, "camera", {"method": "setFocusMode", "params": ["MF"], "version": "1.0"})
+    # #resp = postRequest(conn, "camera", {"method": "getFocusMode", "params": [], "version": "1.0"})
+    #
+    # resp = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "version": "1.0"})
 
     resp = postRequest(conn, "camera", {"method": "startLiveview", "params": [], "version": "1.0"})
     liveview = threading.Thread(target = liveviewFromUrl, args = (resp["result"][0],))
     liveview.start()
 
-    resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "start"], "version": "1.0"})
-    time.sleep(2)
-    resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+    # resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "start"], "version": "1.0"})
+    # time.sleep(2)
+    # resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+    #
+    # time.sleep(3)
+    #
+    # resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
+    # time.sleep(2.5)
+    # resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
 
-    time.sleep(3)
-
-    resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
-    time.sleep(2.5)
-    resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
-
-    conn.close()
+#    conn.close()
 
 if __name__ == "__main__":
     communication = threading.Thread(target = communicationThread)
