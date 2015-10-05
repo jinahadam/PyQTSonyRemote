@@ -21,16 +21,12 @@ class ImageDisplay(QLabel):
         lock.acquire()
         try:
             self.setPixmap(QPixmap.fromImage(image))
-          #  self.fromSpinBox = QDoubleSpinBox()
-          #  self.fromSpinBox.setRange(0.01, 10000000.00)
-          #  self.fromSpinBox.setValue(1.00)
         finally:
             lock.release()
         QLabel.paintEvent(self, event)
 
-imgDisplay = ImageDisplay()
-imgDisplay.setMinimumSize(840, 480)
-imgDisplay.show()
+
+
 
 pId = 0
 headers = {"Content-type": "text/plain", "Accept": "*/*", "X-Requested-With": "com.sony.playmemories.mobile"}
@@ -131,12 +127,12 @@ def communicationThread():
 
     conn = http.client.HTTPConnection("10.0.0.1", 10000)
 
-    # resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
-    # if resp["result"][0][0] != "1.0":
-    #     exitWithError(conn, "Unsupported version")
-    #
-    # resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": "", "developerName": "", "developerID": "", "sg": ""}], "version": "1.0"})
-    # dg = resp["result"][0]["dg"]
+    resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
+    if resp["result"][0][0] != "1.0":
+        exitWithError(conn, "Unsupported version")
+
+    resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": "", "developerName": "", "developerID": "", "sg": ""}], "version": "1.0"})
+    dg = resp["result"][0]["dg"]
 
     h = hashlib.sha256()
     h.update(bytes(AUTH_CONST_STRING + dg, "UTF-8"))
@@ -210,6 +206,51 @@ def communicationThread():
     # resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
 
 #    conn.close()
+
+class Form(QDialog):
+
+
+    def __init__(self, parent=None):
+        super(Form, self).__init__(parent)
+
+        #camera functions
+        takePicBtn = QPushButton("Take Picture")
+        zoomInBtn = QPushButton("Zoom in")
+        zoomOutBtn = QPushButton("Zoom out")
+
+        self.label = QLabel("Standing by..")
+
+        #live stream
+        imgDisplay = ImageDisplay()
+        imgDisplay.setMinimumSize(640, 480)
+        imgDisplay.show()
+
+        grid = QGridLayout()
+        grid.setSpacing(10)
+
+        grid.addWidget(zoomInBtn, 1, 0)
+        grid.addWidget(takePicBtn, 1, 1)
+        grid.addWidget(zoomOutBtn, 1, 2)
+
+        grid.addWidget(imgDisplay,2,3)
+        grid.addWidget(self.label,3,0)
+        self.setLayout(grid)
+
+        #conenections
+        self.connect(takePicBtn, SIGNAL("clicked()"), self.takePic)
+
+    def takePic(self):
+        self.label.setText("You clicked button 'One'")
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
+        downloadImage(resp["result"][0][0])
+
+
+
+form = Form()
+form.show()
+
+
 
 if __name__ == "__main__":
     communication = threading.Thread(target = communicationThread)
