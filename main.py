@@ -242,8 +242,10 @@ class Form(QDialog):
 
         #conenections
         self.connect(takePicBtn, SIGNAL("clicked()"), self.takePic)
-        self.connect(zoomInBtn, SIGNAL("clicked()"), self.zoomIn)
-        self.connect(zoomOutBtn, SIGNAL("clicked()"), self.zoomOut)
+        self.connect(zoomInBtn, SIGNAL("pressed()"), self.zoomIn)
+        self.connect(zoomInBtn, SIGNAL("released()"), self.zoomInStop)
+        self.connect(zoomOutBtn, SIGNAL("pressed()"), self.zoomOut)
+        self.connect(zoomOutBtn, SIGNAL("released()"), self.zoomOutStop)
         self.FComboBox.currentIndexChanged['QString'].connect(self.handleFChange)
         self.ISOComboBox.currentIndexChanged['QString'].connect(self.handleISOChange)
         self.ShutterComboBox.currentIndexChanged['QString'].connect(self.handleShutterChange)
@@ -321,15 +323,22 @@ class Form(QDialog):
         self.label.setText("Zoom In")
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "start"], "version": "1.0"})
-        time.sleep(2)
+
+    def zoomInStop(self):
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+
 
     def zoomOut(self):
         self.label.setText("Zoom In")
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
-        time.sleep(2)
+
+    def zoomOutStop(self):
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
+
+
 
     def handleFChange(self, text):
         print('handleChanged: %s' % text)
