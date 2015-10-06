@@ -220,14 +220,36 @@ class Form(QDialog):
         grid = QGridLayout()
         grid.setSpacing(10)
 
-        grid.addWidget(zoomInBtn, 1, 0)
-        grid.addWidget(takePicBtn, 1, 1)
-        grid.addWidget(zoomOutBtn, 1, 2)
-
-        grid.addWidget(imgDisplay,2,3)
 
 
-        grid.addWidget(self.label,3,0)
+        grid.addWidget(imgDisplay,2,0)
+
+        controlLayout = QGridLayout()
+        controlLayout.setSpacing(10)
+
+        self.FComboBox = QComboBox(self)
+        self.ISOComboBox = QComboBox(self)
+        self.ShutterComboBox = QComboBox(self)
+
+        controlLayout.addWidget(zoomInBtn, 0, 0)
+        controlLayout.addWidget(takePicBtn, 0, 1)
+        controlLayout.addWidget(zoomOutBtn, 0, 2)
+
+
+        controlLayout.addWidget(QLabel("Aperture"),2,0)
+        controlLayout.addWidget(self.FComboBox,2,1)
+        controlLayout.addWidget(QLabel("Shutter Speed"),3,0)
+        controlLayout.addWidget(self.ShutterComboBox,3,1)
+        controlLayout.addWidget(QLabel("ISO"),4,0)
+        controlLayout.addWidget(self.ISOComboBox,4,1)
+
+        controlLayout.addWidget(self.label,5,1)
+
+        self.getSupportedExposureModes(grid)
+
+
+        grid.addLayout(controlLayout,2,1)
+
         self.setLayout(grid)
 
         #conenections
@@ -237,8 +259,9 @@ class Form(QDialog):
 
         #self.connect(setExposureModeBtn, SIGNAL("clicked()"), self.getSupportedExposureModes)
         #grid.addWidget(self.getSupportedExposureModes(), 2, 2)
-        self.getSupportedExposureModes(grid)
-
+        #self.getAvailableFNumber(grid)
+        #self.getAvailableIsoSpeedRate(grid)
+        # self.getAvailableShutterSpeed(grid)
 
 
     def getSupportedExposureModes(self, grid):
@@ -252,18 +275,77 @@ class Form(QDialog):
         layout.addWidget(label)
         for m in available_modes:
             b = QPushButton(m)
-            print(m)
-            self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
+            self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m, grid))
             layout.addWidget(b)
-
         layout.addStretch()
-        grid.addLayout(layout,1,3)
+        grid.addLayout(layout,0,0)
 
-    def setExposureMode(self, m):
+    def setExposureMode(self, m, grid):
         self.label.setText("Setting Mode")
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setExposureMode", "params": [m], "version": "1.0"})
-        if resp["result"][0] == 0: self.label.setText("New Mode Set:" + m)
+        if resp["result"][0] == 0:
+            self.clearCombo(self.ISOComboBox)
+            self.clearCombo(self.FComboBox)
+            self.clearCombo(self.ShutterComboBox)
+
+            self.label.setText("New Mode Set:" + m)
+            self.getAvailableFNumber(grid)
+            self.getAvailableIsoSpeedRate(grid)
+            self.getAvailableShutterSpeed(grid)
+
+    def getAvailableFNumber(self, grid):
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "getAvailableFNumber", "params": [], "version": "1.0"})
+        available_modes = resp["result"][1]
+        self.FComboBox.addItems(available_modes)
+        #layout = QVBoxLayout()
+        #label = QLabel("Aperture Modes:")
+        #layout.addWidget(label)
+        #for m in available_modes:
+        #    b = QPushButton(m)
+        ##    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
+        #    layout.addWidget(b)
+        #layout.addStretch()
+        #grid.addLayout(layout,2,0)
+
+
+
+
+    def getAvailableIsoSpeedRate(self, grid):
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "getAvailableIsoSpeedRate", "params": [], "version": "1.0"})
+        available_modes = resp["result"][1]
+        self.ISOComboBox.addItems(available_modes)
+
+        #layout = QVBoxLayout()
+        #label = QLabel("ISO:")
+        #layout.addWidget(label)
+        #for m in available_modes:
+        #    b = QPushButton(m)
+        #    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
+        #    layout.addWidget(b)
+
+        #layout.addStretch()
+        #grid.addLayout(layout,2,1)
+
+
+    def getAvailableShutterSpeed(self, grid):
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "getAvailableShutterSpeed", "params": [], "version": "1.0"})
+        available_modes = resp["result"][1]
+        self.ShutterComboBox.addItems(available_modes)
+
+        #layout = QVBoxLayout()
+        #label = QLabel("Shutter Speed:")
+        #layout.addWidget(label)
+        #for m in available_modes:
+        #    b = QPushButton(m)
+        #    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
+        #    layout.addWidget(b)
+
+        #layout.addStretch()
+        #grid.addLayout(layout,2,2)
 
     def takePic(self):
         self.label.setText("Capturing Image")
@@ -284,6 +366,12 @@ class Form(QDialog):
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
         time.sleep(2)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
+
+
+    def clearCombo(self,combo):
+        for i in range(combo.count(),-1,-1):
+                print(i)
+                combo.removeItem(i)
 
 
 
