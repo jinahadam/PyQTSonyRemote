@@ -209,7 +209,9 @@ class Form(QDialog):
         takePicBtn = QPushButton("Take Picture")
         zoomInBtn = QPushButton("Zoom in")
         zoomOutBtn = QPushButton("Zoom out")
-
+        self.FComboBox = QComboBox(self)
+        self.ISOComboBox = QComboBox(self)
+        self.ShutterComboBox = QComboBox(self)
         self.label = QLabel("Standing by..")
 
         #live stream
@@ -219,35 +221,21 @@ class Form(QDialog):
 
         grid = QGridLayout()
         grid.setSpacing(10)
-
-
-
         grid.addWidget(imgDisplay,2,0)
 
         controlLayout = QGridLayout()
         controlLayout.setSpacing(10)
-
-        self.FComboBox = QComboBox(self)
-        self.ISOComboBox = QComboBox(self)
-        self.ShutterComboBox = QComboBox(self)
-
         controlLayout.addWidget(zoomInBtn, 0, 0)
         controlLayout.addWidget(takePicBtn, 0, 1)
         controlLayout.addWidget(zoomOutBtn, 0, 2)
-
-
         controlLayout.addWidget(QLabel("Aperture"),2,0)
         controlLayout.addWidget(self.FComboBox,2,1)
         controlLayout.addWidget(QLabel("Shutter Speed"),3,0)
         controlLayout.addWidget(self.ShutterComboBox,3,1)
         controlLayout.addWidget(QLabel("ISO"),4,0)
         controlLayout.addWidget(self.ISOComboBox,4,1)
-
         controlLayout.addWidget(self.label,5,1)
-
         self.getSupportedExposureModes(grid)
-
-
         grid.addLayout(controlLayout,2,1)
 
         self.setLayout(grid)
@@ -256,12 +244,14 @@ class Form(QDialog):
         self.connect(takePicBtn, SIGNAL("clicked()"), self.takePic)
         self.connect(zoomInBtn, SIGNAL("clicked()"), self.zoomIn)
         self.connect(zoomOutBtn, SIGNAL("clicked()"), self.zoomOut)
+        self.FComboBox.currentIndexChanged['QString'].connect(self.handleFChange)
+        self.ISOComboBox.currentIndexChanged['QString'].connect(self.handleISOChange)
+        self.ShutterComboBox.currentIndexChanged['QString'].connect(self.handleShutterChange)
 
-        #self.connect(setExposureModeBtn, SIGNAL("clicked()"), self.getSupportedExposureModes)
-        #grid.addWidget(self.getSupportedExposureModes(), 2, 2)
-        #self.getAvailableFNumber(grid)
-        #self.getAvailableIsoSpeedRate(grid)
-        # self.getAvailableShutterSpeed(grid)
+        #camera controls
+        self.getAvailableFNumber(grid)
+        self.getAvailableIsoSpeedRate(grid)
+        self.getAvailableShutterSpeed(grid)
 
 
     def getSupportedExposureModes(self, grid):
@@ -297,55 +287,29 @@ class Form(QDialog):
     def getAvailableFNumber(self, grid):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableFNumber", "params": [], "version": "1.0"})
-        available_modes = resp["result"][1]
-        self.FComboBox.addItems(available_modes)
-        #layout = QVBoxLayout()
-        #label = QLabel("Aperture Modes:")
-        #layout.addWidget(label)
-        #for m in available_modes:
-        #    b = QPushButton(m)
-        ##    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
-        #    layout.addWidget(b)
-        #layout.addStretch()
-        #grid.addLayout(layout,2,0)
-
-
-
+        try:
+            available_modes = resp["result"][1]
+            self.FComboBox.addItems(available_modes)
+        except:
+            pass
 
     def getAvailableIsoSpeedRate(self, grid):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableIsoSpeedRate", "params": [], "version": "1.0"})
-        available_modes = resp["result"][1]
-        self.ISOComboBox.addItems(available_modes)
-
-        #layout = QVBoxLayout()
-        #label = QLabel("ISO:")
-        #layout.addWidget(label)
-        #for m in available_modes:
-        #    b = QPushButton(m)
-        #    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
-        #    layout.addWidget(b)
-
-        #layout.addStretch()
-        #grid.addLayout(layout,2,1)
-
+        try:
+            available_modes = resp["result"][1]
+            self.ISOComboBox.addItems(available_modes)
+        except:
+            pass
 
     def getAvailableShutterSpeed(self, grid):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableShutterSpeed", "params": [], "version": "1.0"})
-        available_modes = resp["result"][1]
-        self.ShutterComboBox.addItems(available_modes)
-
-        #layout = QVBoxLayout()
-        #label = QLabel("Shutter Speed:")
-        #layout.addWidget(label)
-        #for m in available_modes:
-        #    b = QPushButton(m)
-        #    self.connect(b, SIGNAL("clicked()"), functools.partial(self.setExposureMode, m))
-        #    layout.addWidget(b)
-
-        #layout.addStretch()
-        #grid.addLayout(layout,2,2)
+        try:
+            available_modes = resp["result"][1]
+            self.ShutterComboBox.addItems(available_modes)
+        except:
+            pass
 
     def takePic(self):
         self.label.setText("Capturing Image")
@@ -367,13 +331,25 @@ class Form(QDialog):
         time.sleep(2)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
 
+    def handleFChange(self, text):
+        print('handleChanged: %s' % text)
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "setFNumber", "params": [text], "version": "1.0"})
+
+    def handleISOChange(self, text):
+        print('handleChanged: %s' % text)
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "setIsoSpeedRate", "params": [text], "version": "1.0"})
+
+    def handleShutterChange(self, text):
+        print('handleChanged: %s' % text)
+        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        resp = postRequest(conn, "camera", {"method": "setShutterSpeed", "params": [text], "version": "1.0"})
 
     def clearCombo(self,combo):
         for i in range(combo.count(),-1,-1):
                 print(i)
                 combo.removeItem(i)
-
-
 
 form = Form()
 form.show()
