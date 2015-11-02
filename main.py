@@ -1,12 +1,17 @@
-#!/usr/bin/env python3
+import rospy
 import sys, json, time
-import http.client, urllib.parse
+import httplib
 import threading
 import base64, hashlib
 import functools
+import urllib
 
+from urlparse import urlparse
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
+
+
+
 
 lock = threading.Lock()
 
@@ -39,11 +44,11 @@ def postRequest(conn, target, req):
     global pId
     pId += 1
     req["id"] = pId
-    print("REQUEST  [%s]: " % target, end = "")
+#    print("REQUEST  [%s]: " % target, end = "")
     print(req)
     conn.request("POST", "/sony/" + target, json.dumps(req), headers)
     response = conn.getresponse()
-    print("RESPONSE [%s]: " % target, end = "")
+ #   print("RESPONSE [%s]: " % target, end = "")
     #print(response.status, response.reason)
     data = json.loads(response.read().decode("UTF-8"))
     print(data)
@@ -61,12 +66,12 @@ def exitWithError(conn, message):
     sys.exit(1)
 
 def parseUrl(url):
-    parsedUrl = urllib.parse.urlparse(url)
+    parsedUrl = urlparse(url)
     return parsedUrl.hostname, parsedUrl.port, parsedUrl.path + "?" + parsedUrl.query, parsedUrl.path[1:]
 
 def downloadImage(url):
     host, port, address, img_name = parseUrl(url)
-    conn2 = http.client.HTTPConnection(host, port)
+    conn2 = httplib.HTTPConnection(host, port)
     conn2.request("GET", address)
     response = conn2.getresponse()
     if response.status == 200:
@@ -85,14 +90,14 @@ def liveviewFromUrl(url):
     global image
     global lock
     host, port, address, img_name = parseUrl(url)
-    conn3 = http.client.HTTPConnection(host, port)
+    conn3 = httplib.HTTPConnection(host, port)
     conn3.request("GET", address)
     response = conn3.getresponse()
     #flow = open("liveview", "wb")
     if response.status == 200:
         buf = b''
         c = 0
-        while not response.closed:
+        while response.status == 200:
             nextPart = response.read(1024)
             #flow.write(nextPart)
             #flow.flush()
@@ -126,7 +131,7 @@ def communicationThread():
     #req = {"method": "getEvent", "params": [True], "id": 4, "version": "1.0"}
     #req = {"method": "getMethodTypes", "params": ["1.0"], "id": 8, "version": "1.0"}
 
-    conn = http.client.HTTPConnection("10.0.0.1", 10000)
+    conn = httplib.HTTPConnection("10.0.0.1", 10000)
 
     resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
     if resp["result"][0][0] != "1.0":
@@ -135,9 +140,9 @@ def communicationThread():
     resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": "", "developerName": "", "developerID": "", "sg": ""}], "version": "1.0"})
     dg = resp["result"][0]["dg"]
 
-    h = hashlib.sha256()
-    h.update(bytes(AUTH_CONST_STRING + dg, "UTF-8"))
-    sg = base64.b64encode(h.digest()).decode("UTF-8")
+   # h = hashlib.sha256()
+   # h.update(bytes(AUTH_CONST_STRING + dg, "UTF-8"))
+   # sg = base64.b64encode(h.digest()).decode("UTF-8")
 
     # resp = postRequest(conn, "accessControl", {"method": "actEnableMethods", "params": [{"methods": METHODS_TO_ENABLE, "developerName": "Sony Corporation", "developerID": "7DED695E-75AC-4ea9-8A85-E5F8CA0AF2F3", "sg": sg}], "version": "1.0"})
     #
@@ -257,7 +262,7 @@ class Form(QDialog):
 
 
     def getSupportedExposureModes(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableExposureMode", "params": [], "version": "1.0"})
         self.label.setText("Current Mode:" + resp["result"][0])
         available_modes = resp["result"][1]
@@ -274,7 +279,7 @@ class Form(QDialog):
 
     def setExposureMode(self, m, grid):
         self.label.setText("Setting Mode")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setExposureMode", "params": [m], "version": "1.0"})
         if resp["result"][0] == 0:
             self.clearCombo(self.ISOComboBox)
@@ -287,7 +292,7 @@ class Form(QDialog):
             self.getAvailableShutterSpeed(grid)
 
     def getAvailableFNumber(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableFNumber", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -296,7 +301,7 @@ class Form(QDialog):
             pass
 
     def getAvailableIsoSpeedRate(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableIsoSpeedRate", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -305,7 +310,7 @@ class Form(QDialog):
             pass
 
     def getAvailableShutterSpeed(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "getAvailableShutterSpeed", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -315,44 +320,44 @@ class Form(QDialog):
 
     def takePic(self):
         self.label.setText("Capturing Image")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
         downloadImage(resp["result"][0][0])
 
     def zoomIn(self):
         self.label.setText("Zoom In")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "start"], "version": "1.0"})
 
     def zoomInStop(self):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
 
 
     def zoomOut(self):
         self.label.setText("Zoom In")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
 
     def zoomOutStop(self):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
 
 
 
     def handleFChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setFNumber", "params": [text], "version": "1.0"})
 
     def handleISOChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setIsoSpeedRate", "params": [text], "version": "1.0"})
 
     def handleShutterChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = httplib.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "setShutterSpeed", "params": [text], "version": "1.0"})
 
     def clearCombo(self,combo):
