@@ -39,20 +39,20 @@ def postRequest(conn, target, req):
     global pId
     pId += 1
     req["id"] = pId
-    print("REQUEST  [%s]: " % target, end = "")
-    print(req)
+    #print("REQUEST  [%s]: " % target, end = "")
+    #print(req)
     conn.request("POST", "/sony/" + target, json.dumps(req), headers)
     response = conn.getresponse()
-    print("RESPONSE [%s]: " % target, end = "")
+    #print("RESPONSE [%s]: " % target, end = "")
     #print(response.status, response.reason)
     data = json.loads(response.read().decode("UTF-8"))
-    print(data)
+    #print(data)
     if data["id"] != pId:
-        print("FATAL ERROR: Response id does not match")
+     #   print("FATAL ERROR: Response id does not match")
         return {}
-    if "error" in data:
-        print("WARNING: Response contains error code: %d; error message: [%s]" % tuple(data["error"]))
-    print("")
+    #if "error" in data:
+      #  print("WARNING: Response contains error code: %d; error message: [%s]" % tuple(data["error"]))
+    #print("")
     return data
 
 def exitWithError(conn, message):
@@ -327,6 +327,10 @@ class Form(QDialog):
     def zoomInStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+        feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
+        print(feedback["result"][2]["zoomPosition"])
+        self.label.setText("Zoom Position: "+ str(feedback["result"][2]["zoomPosition"]))
+
 
 
     def zoomOut(self):
@@ -337,6 +341,9 @@ class Form(QDialog):
     def zoomOutStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
+        feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
+        print(feedback["result"][2]["zoomPosition"])
+        self.label.setText("Zoom Position: "+ str(feedback["result"][2]["zoomPosition"]))
 
 
 
