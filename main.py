@@ -12,6 +12,7 @@ lock = threading.Lock()
 
 app = QApplication(sys.argv)
 image = QImage()
+overviewgrid = "off"
 
 class ImageDisplay(QLabel):
     def __init__(self):
@@ -19,22 +20,52 @@ class ImageDisplay(QLabel):
 
     def paintEvent(self, event):
         global lock
+        global overviewgrid
+
         lock.acquire()
         try:
           #draws bullseye cross on image
-          qp = QPainter()
-          image_height = image.height()
-          image_width = image.width()
-          bull_size = 150
 
-          qp.begin(image)
-          pen = QPen(Qt.red, 1, Qt.SolidLine)
-          qp.setPen(pen)
-          qp.drawLine(image_width/2, bull_size, image_width/2, image_height-bull_size)
-          qp.drawLine((bull_size*1.5), image_height/2, image_width-(bull_size*1.5), image_height/2)
-          qp.end()
+          if overviewgrid == "bullseye":
+              qp = QPainter()
+              image_height = image.height()
+              image_width = image.width()
+              bull_size = 150
 
-          self.setPixmap(QPixmap.fromImage(image))
+              qp.begin(image)
+              pen = QPen(Qt.red, 1, Qt.SolidLine)
+              qp.setPen(pen)
+              qp.drawLine(image_width/2, bull_size, image_width/2, image_height-bull_size)
+              qp.drawLine((bull_size*1.5), image_height/2, image_width-(bull_size*1.5), image_height/2)
+              qp.end()
+              self.setPixmap(QPixmap.fromImage(image))
+          elif overviewgrid == "gridlines":
+              qp = QPainter()
+              image_height = image.height()
+              image_width = image.width()
+
+              qp.begin(image)
+              pen = QPen(Qt.white, 1, Qt.SolidLine)
+              qp.setPen(pen)
+              grid_h = image_width/20;
+              grid_v = image_height/15;
+              for n in range(0, 20):
+                  qp.drawLine(grid_h*n, 0, grid_h*n, image_height)
+              for n in range(0, 15):
+                  qp.drawLine(0, grid_v*n, image_width, grid_v*n)
+
+
+              qp.end()
+
+              self.setPixmap(QPixmap.fromImage(image))
+          else:
+              self.setPixmap(QPixmap.fromImage(image))
+
+
+          #print(overviewgrid)
+
+
+
 
         finally:
             lock.release()
@@ -219,6 +250,11 @@ class Form(QDialog):
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
 
+        #camera grid
+        gridOnBtn = QPushButton("Grid On")
+        gridEyeBtn = QPushButton("Bullseye")
+        gridOffBtn = QPushButton("Grid Off")
+
         #camera functions
         takePicBtn = QPushButton("Take Picture")
         zoomInBtn = QPushButton("Zoom in")
@@ -250,13 +286,21 @@ class Form(QDialog):
         controlLayout.addWidget(self.ShutterComboBox,3,1)
         controlLayout.addWidget(QLabel("ISO"),4,0)
         controlLayout.addWidget(self.ISOComboBox,4,1)
-        controlLayout.addWidget(self.label,5,1)
+        controlLayout.addWidget(gridOnBtn,5,0)
+        controlLayout.addWidget(gridEyeBtn,5,1)
+        controlLayout.addWidget(gridOffBtn,5,2)
+        controlLayout.addWidget(self.label,6,1)
+
         self.getSupportedExposureModes(grid)
         grid.addLayout(controlLayout,2,1)
 
         self.setLayout(grid)
 
         #conenections
+        self.connect(gridOnBtn, SIGNAL("clicked()"), self.setGridon)
+        self.connect(gridEyeBtn, SIGNAL("clicked()"), self.setGridEye)
+        self.connect(gridOffBtn, SIGNAL("clicked()"), self.setGridOff)
+
         self.connect(takePicBtn, SIGNAL("clicked()"), self.takePic)
         self.connect(zoomInBtn, SIGNAL("pressed()"), self.zoomIn)
         self.connect(zoomInBtn, SIGNAL("released()"), self.zoomInStop)
@@ -270,6 +314,19 @@ class Form(QDialog):
         self.getAvailableFNumber(grid)
         self.getAvailableIsoSpeedRate(grid)
         self.getAvailableShutterSpeed(grid)
+
+    def setGridon(self):
+        global overviewgrid
+        overviewgrid = "gridlines"
+
+    def setGridEye(self):
+        global overviewgrid
+        overviewgrid = "bullseye"
+
+
+    def setGridOff(self):
+        global overviewgrid
+        overviewgrid = "off"
 
 
     def getSupportedExposureModes(self, grid):
