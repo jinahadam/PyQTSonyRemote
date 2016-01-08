@@ -62,7 +62,11 @@ def postRequest(conn, target, req):
     data = json.loads(response.read().decode("UTF-8"))
     #print(data)
     if data["id"] != pId:
+<<<<<<< HEAD
+    #    print("FATAL ERROR: Response id does not match")
+=======
      #   print("FATAL ERROR: Response id does not match")
+>>>>>>> 478e036b082163482de10ebe8737b2d4759d8729
         return {}
     #if "error" in data:
       #  print("WARNING: Response contains error code: %d; error message: [%s]" % tuple(data["error"]))
@@ -343,9 +347,15 @@ class Form(QDialog):
     def zoomInStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+<<<<<<< HEAD
+        req = {"method": "getEvent", "params": [True], "id": 4, "version": "1.0"}
+        resp = postRequest(conn, "camera", req)
+        print(resp["result"][2])
+=======
         feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
         print(feedback["result"][2]["zoomPosition"])
         self.label.setText("Zoom Position: "+ str(feedback["result"][2]["zoomPosition"]))
+>>>>>>> 478e036b082163482de10ebe8737b2d4759d8729
 
 
 
@@ -357,9 +367,15 @@ class Form(QDialog):
     def zoomOutStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
+<<<<<<< HEAD
+        resp = postRequest(conn, "camera", req)
+        print(resp["result"][2])
+=======
         feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
         print(feedback["result"][2]["zoomPosition"])
         self.label.setText("Zoom Position: "+ str(feedback["result"][2]["zoomPosition"]))
+
+>>>>>>> 478e036b082163482de10ebe8737b2d4759d8729
 
 
     def handleFChange(self, text):
