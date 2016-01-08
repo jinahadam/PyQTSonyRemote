@@ -21,7 +21,21 @@ class ImageDisplay(QLabel):
         global lock
         lock.acquire()
         try:
-            self.setPixmap(QPixmap.fromImage(image))
+          #draws bullseye cross on image
+          qp = QPainter()
+          image_height = image.height()
+          image_width = image.width()
+          bull_size = 150
+
+          qp.begin(image)
+          pen = QPen(Qt.red, 1, Qt.SolidLine)
+          qp.setPen(pen)
+          qp.drawLine(image_width/2, bull_size, image_width/2, image_height-bull_size)
+          qp.drawLine((bull_size*1.5), image_height/2, image_width-(bull_size*1.5), image_height/2)
+          qp.end()
+
+          self.setPixmap(QPixmap.fromImage(image))
+
         finally:
             lock.release()
         QLabel.paintEvent(self, event)
@@ -39,16 +53,16 @@ def postRequest(conn, target, req):
     global pId
     pId += 1
     req["id"] = pId
-    print("REQUEST  [%s]: " % target, end = "")
-    print(req)
+    #print("REQUEST  [%s]: " % target, end = "")
+    #print(req)
     conn.request("POST", "/sony/" + target, json.dumps(req), headers)
     response = conn.getresponse()
-    print("RESPONSE [%s]: " % target, end = "")
+    #print("RESPONSE [%s]: " % target, end = "")
     #print(response.status, response.reason)
     data = json.loads(response.read().decode("UTF-8"))
-    print(data)
+    #print(data)
     if data["id"] != pId:
-        print("FATAL ERROR: Response id does not match")
+    #    print("FATAL ERROR: Response id does not match")
         return {}
     if "error" in data:
         print("WARNING: Response contains error code: %d; error message: [%s]" % tuple(data["error"]))
@@ -56,7 +70,7 @@ def postRequest(conn, target, req):
     return data
 
 def exitWithError(conn, message):
-    print("ERROR: %s" % message)
+    #print("ERROR: %s" % message)
     conn.close()
     sys.exit(1)
 
@@ -217,6 +231,8 @@ class Form(QDialog):
         #live stream
         imgDisplay = ImageDisplay()
         imgDisplay.setMinimumSize(640, 480)
+        #imgDisplay.setMinimumSize(1000, 1000)
+
         imgDisplay.show()
 
         grid = QGridLayout()
@@ -327,6 +343,10 @@ class Form(QDialog):
     def zoomInStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
+        req = {"method": "getEvent", "params": [True], "id": 4, "version": "1.0"}
+        resp = postRequest(conn, "camera", req)
+        print(resp["result"][2])
+
 
 
     def zoomOut(self):
@@ -337,7 +357,8 @@ class Form(QDialog):
     def zoomOutStop(self):
         conn = http.client.HTTPConnection("10.0.0.1", 10000)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
-
+        resp = postRequest(conn, "camera", req)
+        print(resp["result"][2])
 
 
     def handleFChange(self, text):
