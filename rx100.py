@@ -170,10 +170,13 @@ def communicationThread():
     #req = {"method": "getEvent", "params": [False], "id": 3, "version": "1.0"}        # (!!!) get method list
     #req = {"method": "getEvent", "params": [True], "id": 4, "version": "1.0"}
     #req = {"method": "getMethodTypes", "params": ["1.0"], "id": 8, "version": "1.0"}
-    #http://192.168.122.1:8080/sony/camera
-    conn = http.client.HTTPConnection("10.0.0.1", 10000)
-    #conn = http.client.HTTPConnection("192.168.122.1:8080", 10000)
-    resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
+    #http://192.168.122.1.1:8080/sony/camera
+    conn = http.client.HTTPConnection("192.168.122.1", 8080)
+    resp = postRequest(conn, "camera", {"method": "startRecMode", "params": [], "version": "1.0"})
+
+
+    #conn = http.client.HTTPConnection("192.168.122.1.1:8080", 8080)
+    #resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
 
     resp = postRequest(conn, "camera", {"method": "getVersions", "params": []})
     if resp["result"][0][0] != "1.0":
@@ -239,6 +242,8 @@ def communicationThread():
     #
     # resp = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "version": "1.0"})
 
+
+
     resp = postRequest(conn, "camera", {"method": "startLiveview", "params": [], "version": "1.0"})
     liveview = threading.Thread(target = liveviewFromUrl, args = (resp["result"][0],))
     liveview.start()
@@ -251,6 +256,7 @@ class Form(QDialog):
 
     def __init__(self, parent=None):
         super(Form, self).__init__(parent)
+
 
         #camera grid
         gridOnBtn = QPushButton("Grid On")
@@ -293,6 +299,7 @@ class Form(QDialog):
         controlLayout.addWidget(gridOffBtn,5,2)
         controlLayout.addWidget(self.label,6,1)
 
+        self.setRecMode()
         self.getSupportedExposureModes(grid)
         grid.addLayout(controlLayout,2,1)
 
@@ -330,12 +337,23 @@ class Form(QDialog):
         global overviewgrid
         overviewgrid = "off"
 
+    def setRecMode(self):
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
+        resp = postRequest(conn, "camera", {"method": "startRecMode", "params": [], "version": "1.0"})
+        resp = postRequest(conn, "camera", {"method": "getAvailableApiList", "params": [], "version": "1.0"})
+        print(resp["result"])
+
 
     def getSupportedExposureModes(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
-        resp = postRequest(conn, "camera", {"method": "getAvailableExposureMode", "params": [], "version": "1.0"})
-        self.label.setText("Current Mode:" + resp["result"][0])
-        available_modes = resp["result"][1]
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
+        #resp = postRequest(conn, "camera", {"method": "startRecMode", "params": [], "version": "1.0"})
+
+        resp = postRequest(conn, "camera", {"method": "getSupportedExposureMode", "params": [], "version": "1.0"})
+        print(resp["result"])
+
+        #self.label.setText("Current Mode:" + resp["result"][0])
+
+        available_modes = resp["result"][0]
         #available_modes = ['Intelligent Auto', 'Superior Auto', 'Program Auto', 'Aperture', 'Shutter']
         layout = QHBoxLayout()
         label = QLabel("Camera Modes:")
@@ -349,8 +367,9 @@ class Form(QDialog):
 
     def setExposureMode(self, m, grid):
         self.label.setText("Setting Mode")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "setExposureMode", "params": [m], "version": "1.0"})
+        print(resp);
         if resp["result"][0] == 0:
             self.clearCombo(self.ISOComboBox)
             self.clearCombo(self.FComboBox)
@@ -362,7 +381,7 @@ class Form(QDialog):
             self.getAvailableShutterSpeed(grid)
 
     def getAvailableFNumber(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "getAvailableFNumber", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -371,7 +390,7 @@ class Form(QDialog):
             pass
 
     def getAvailableIsoSpeedRate(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "getAvailableIsoSpeedRate", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -380,7 +399,7 @@ class Form(QDialog):
             pass
 
     def getAvailableShutterSpeed(self, grid):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "getAvailableShutterSpeed", "params": [], "version": "1.0"})
         try:
             available_modes = resp["result"][1]
@@ -390,17 +409,17 @@ class Form(QDialog):
 
     def takePic(self):
         self.label.setText("Capturing Image")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "actTakePicture", "params": [], "version": "1.0"})
         downloadImage(resp["result"][0][0])
 
     def zoomIn(self):
         self.label.setText("Zoom In")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "start"], "version": "1.0"})
 
     def zoomInStop(self):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["in", "stop"], "version": "1.0"})
         feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
         print(feedback["result"][2]["zoomPosition"])
@@ -410,11 +429,11 @@ class Form(QDialog):
 
     def zoomOut(self):
         self.label.setText("Zoom In")
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "start"], "version": "1.0"})
 
     def zoomOutStop(self):
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "actZoom", "params": ["out", "stop"], "version": "1.0"})
         feedback = postRequest(conn, "camera", {"method": "getEvent", "params": [False], "id": 4, "version": "1.0"})
         print(feedback["result"][2]["zoomPosition"])
@@ -423,23 +442,25 @@ class Form(QDialog):
 
     def handleFChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "setFNumber", "params": [text], "version": "1.0"})
 
     def handleISOChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "setIsoSpeedRate", "params": [text], "version": "1.0"})
 
     def handleShutterChange(self, text):
         print('handleChanged: %s' % text)
-        conn = http.client.HTTPConnection("10.0.0.1", 10000)
+        conn = http.client.HTTPConnection("192.168.122.1", 8080)
         resp = postRequest(conn, "camera", {"method": "setShutterSpeed", "params": [text], "version": "1.0"})
 
     def clearCombo(self,combo):
         for i in range(combo.count(),-1,-1):
                 print(i)
                 combo.removeItem(i)
+
+
 
 form = Form()
 form.show()
